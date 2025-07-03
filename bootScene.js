@@ -19,9 +19,9 @@ class BootScene extends Phaser.Scene {
   
       // Transparent button over Start Game area
       const zoneW = this.scale.width * 0.6;
-      const zoneH = 60;
+      const zoneH = 100;
       const zoneX = centerX;
-      const zoneY = this.scale.height * 0.90;
+      const zoneY = this.scale.height * 0.85;
   
       const startZone = this.add.rectangle(zoneX, zoneY, zoneW, zoneH, 0x000000, 0)
         .setInteractive({ useHandCursor: true })
