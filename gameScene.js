@@ -45,7 +45,7 @@ class GameScene extends Phaser.Scene {
     const meterHeight = 20;
     const gap = 70;
     const baseX = 50;
-    const baseY = height * 0.25;
+    const baseY = height * 0.55;
 
     const meterData = [
       { type: 'burger', icon: 'iconBurger', fill: 'fillBurger', color: 0xff5555 },
