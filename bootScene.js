@@ -21,7 +21,7 @@ class BootScene extends Phaser.Scene {
       const zoneW = this.scale.width * 0.6;
       const zoneH = 60;
       const zoneX = centerX;
-      const zoneY = this.scale.height * 0.55;
+      const zoneY = this.scale.height * 0.65;
   
       const startZone = this.add.rectangle(zoneX, zoneY, zoneW, zoneH, 0x000000, 0)
         .setInteractive({ useHandCursor: true })
