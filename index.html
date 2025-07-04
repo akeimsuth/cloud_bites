@@ -22,17 +22,18 @@
             height: 100vh !important;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
 </head>
 
 <body>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <script src="bootScene.js"></script>
     <script src="gameScene.js"></script>
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
     <script type="module">
         // Firebase SDK
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyC0d1oNHIP7pvRTcqTWd-_ycJzvLXBNj6w",
@@ -46,7 +47,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        window.Firebase = { db, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc };
+        window.Firebase = { db, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc, orderBy, limit };
     </script>
 </body>
 

@@ -1,3 +1,5 @@
+import LeaderboardScene from './LeaderboardScene.js';
+
 const config = {
     type: Phaser.AUTO,
     scale: {
@@ -6,7 +8,7 @@ const config = {
       width: window.innerWidth,
       height: window.innerHeight
     },
-    scene: [BootScene, GameScene],
+    scene: [BootScene, GameScene, LeaderboardScene],
     physics: { default: 'arcade' },
     backgroundColor: '#000' // fallback to avoid white margin flash
   };

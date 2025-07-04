@@ -9,6 +9,12 @@ class BootScene extends Phaser.Scene {
     }
   
     create() {
+      const lastPlayed = localStorage.getItem('lastPlayedTimestamp');
+      const now = Date.now();
+  
+      if (lastPlayed && now - parseInt(lastPlayed) < 24 * 60 * 60 * 1000) {
+        this.scene.start('LeaderboardScene'); // ❌ Played too recently
+      }
       const centerX = this.scale.width / 2;
       const centerY = this.scale.height / 2;
   

@@ -26,15 +26,7 @@ class GameScene extends Phaser.Scene {
     this.load.image('couponDrink', 'assets/coupon_drink.png');
     this.load.image('sparkle', 'assets/sparkle.png');
     this.load.image('placeholderCoupon', 'assets/placeholder_coupon.png');
-    // const lastPlayed = localStorage.getItem('lastPlayedDate');
-    // const today = new Date().toISOString().split('T')[0];
-
-    // if (lastPlayed == today) {
-    //   this.scene.start('LeaderboardScene'); // 🔁 redirect
-    // } 
-    // else {
-    //   this.scene.start('GameScene'); // ✅ allow
-    // }
+    
 
   }
 
@@ -161,7 +153,7 @@ class GameScene extends Phaser.Scene {
     };
   }
 
-  buildClaimForm() {
+  buildClaimForm(fingerprintId) {
     const form = document.createElement('form');
     form.id = 'userForm';
     form.style.position = 'absolute';
@@ -230,6 +222,7 @@ class GameScene extends Phaser.Scene {
         email: data.email,
         phone: data.phone,
         location: data.location,
+        fingerprintId,
         prizes: [this.popup.rewardType],
         timesPlayed: 1,
         createdAt: new Date(),
@@ -243,83 +236,73 @@ class GameScene extends Phaser.Scene {
         timesPlayed: 1
       };
   
-      localStorage.setItem('playerId', docRef.id);
-      localStorage.setItem('lastPlayedDate', new Date().toISOString().split('T')[0]);
-  
+      localStorage.setItem('lastPlayedTimestamp', Date.now().toString());
       form.remove();
       this.revealPrize(this.popup.rewardType);
     });
   }
 
   createClaimForm() {
-    const existingForm = document.getElementById('userForm');
-    if (existingForm) return;
+    FingerprintJS.load().then(fp => fp.get()).then(async result => {
+      const fingerprintId = result.visitorId;
+      const db = window.Firebase.db;
+      const ref = window.Firebase.collection(db, 'players');
+      const queryRef = window.Firebase.query(ref, window.Firebase.where('fingerprintId', '==', fingerprintId));
+      const snapshot = await window.Firebase.getDocs(queryRef);
   
-    const playerId = localStorage.getItem('playerId');
-    const db = window.Firebase.db;
+      if (!snapshot.empty) {
+        const playerDoc = snapshot.docs[0];
+        const playerData = playerDoc.data();
   
-    if (playerId) {
-      const docRef = window.Firebase.doc(db, 'players', playerId);
+        const confirmBox = document.createElement('div');
+        confirmBox.style.position = 'absolute';
+        confirmBox.style.top = '100px';
+        confirmBox.style.left = '50%';
+        confirmBox.style.transform = 'translateX(-50%)';
+        confirmBox.style.background = '#fff';
+        confirmBox.style.padding = '20px';
+        confirmBox.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+        confirmBox.style.borderRadius = '10px';
+        confirmBox.style.zIndex = '1000';
+        confirmBox.style.width = '300px';
+        confirmBox.style.fontFamily = 'sans-serif';
+        confirmBox.style.textAlign = 'center';
   
-      window.Firebase.getDoc(docRef).then(async (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          console.log("DATA: ", data);
-          // Ask user to confirm
-          const confirmBox = document.createElement('div');
-          confirmBox.style.position = 'absolute';
-          confirmBox.style.top = '100px';
-          confirmBox.style.left = '50%';
-          confirmBox.style.transform = 'translateX(-50%)';
-          confirmBox.style.background = '#fff';
-          confirmBox.style.padding = '20px';
-          confirmBox.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-          confirmBox.style.borderRadius = '10px';
-          confirmBox.style.zIndex = '1000';
-          confirmBox.style.width = '300px';
-          confirmBox.style.fontFamily = 'sans-serif';
-          confirmBox.style.textAlign = 'center';
+        confirmBox.innerHTML = `
+          <p>Are you <strong>${playerData.name}</strong>?</p>
+          <button id="yesBtn" style="margin-right:10px;">Yes</button>
+          <button id="noBtn">No</button>
+        `;
+        document.body.appendChild(confirmBox);
   
-          confirmBox.innerHTML = `
-            <p>Are you <strong>${data.name}</strong>?</p>
-            <button id="yesBtn" style="margin-right:10px;">Yes</button>
-            <button id="noBtn">No</button>
-          `;
-          document.body.appendChild(confirmBox);
+        confirmBox.querySelector('#yesBtn').onclick = async () => {
+          const updatedPrizes = [...(playerData.prizes || []), this.popup.rewardType];
+          await window.Firebase.updateDoc(playerDoc.ref, {
+            timesPlayed: (playerData.timesPlayed || 0) + 1,
+            updatedAt: new Date(),
+            prizes: updatedPrizes
+          });
   
-          confirmBox.querySelector('#yesBtn').onclick = async () => {
-            const updatedPrizes = [...(data.prizes || []), this.popup.rewardType];
-            await window.Firebase.updateDoc(docRef, {
-              timesPlayed: (data.timesPlayed || 0) + 1,
-              updatedAt: new Date(),
-              prizes: updatedPrizes
-            });
-  
-            this.user = {
-              id: playerId,
-              ...data,
-              timesPlayed: (data.timesPlayed || 0) + 1,
-              prizes: updatedPrizes
-            };
-  
-            localStorage.setItem('lastPlayedDate', new Date().toISOString().split('T')[0]);
-  
-            confirmBox.remove();
-            this.revealPrize(this.popup.rewardType);
+          this.user = {
+            id: playerDoc.id,
+            ...playerData,
+            timesPlayed: (playerData.timesPlayed || 0) + 1,
+            prizes: updatedPrizes
           };
   
-          confirmBox.querySelector('#noBtn').onclick = () => {
-            confirmBox.remove();
-            this.buildClaimForm(); // fallback to full form
-          };
-        } else {
-          localStorage.removeItem('playerId');
-          this.buildClaimForm(); // fallback if no doc
-        }
-      });
-    } else {
-      this.buildClaimForm(); // new player
-    }
+          localStorage.setItem('lastPlayedTimestamp', Date.now().toString());
+          confirmBox.remove();
+          this.revealPrize(this.popup.rewardType);
+        };
+  
+        confirmBox.querySelector('#noBtn').onclick = () => {
+          confirmBox.remove();
+          this.buildClaimForm(fingerprintId);
+        };
+      } else {
+        this.buildClaimForm(fingerprintId);
+      }
+    });
   }
 
 
