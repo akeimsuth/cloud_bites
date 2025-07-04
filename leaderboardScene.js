@@ -35,7 +35,7 @@ function createEmojiPopup(rank = 1, message = 'You made the top ranks! 🌟') {
   popup.querySelector('button').onclick = () => popup.remove();
 }
 
-export default class LeaderboardScene extends Phaser.Scene {
+class LeaderboardScene extends Phaser.Scene {
   constructor() {
     super('LeaderboardScene');
   }
