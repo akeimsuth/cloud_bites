@@ -26,6 +26,16 @@ class GameScene extends Phaser.Scene {
     this.load.image('couponDrink', 'assets/coupon_drink.png');
     this.load.image('sparkle', 'assets/sparkle.png');
     this.load.image('placeholderCoupon', 'assets/placeholder_coupon.png');
+    // const lastPlayed = localStorage.getItem('lastPlayedDate');
+    // const today = new Date().toISOString().split('T')[0];
+
+    // if (lastPlayed == today) {
+    //   this.scene.start('LeaderboardScene'); // 🔁 redirect
+    // } 
+    // else {
+    //   this.scene.start('GameScene'); // ✅ allow
+    // }
+
   }
 
   create() {
@@ -34,7 +44,7 @@ class GameScene extends Phaser.Scene {
     const centerY = height / 2;
 
     this.add.image(centerX, centerY, 'bg').setDisplaySize(width, height);
-    
+
     this.score = { burger: 0, fries: 0, drink: 0 };
     this.foodGroup = this.physics.add.group();
     this.confettiGroup = this.add.group();
@@ -151,60 +161,203 @@ class GameScene extends Phaser.Scene {
     };
   }
 
-  showReward(type) {
+  buildClaimForm() {
+    const form = document.createElement('form');
+    form.id = 'userForm';
+    form.style.position = 'absolute';
+    form.style.top = '80px';
+    form.style.left = '50%';
+    form.style.transform = 'translateX(-50%)';
+    form.style.background = '#fff';
+    form.style.padding = '20px';
+    form.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+    form.style.borderRadius = '10px';
+    form.style.zIndex = '1000';
+    form.style.display = 'flex';
+    form.style.flexDirection = 'column';
+    form.style.gap = '10px';
+    form.style.width = '280px';
+    form.style.fontFamily = 'sans-serif';
+  
+    form.innerHTML = `
+      <h3 style="margin:0 0 5px; text-align:center;">🎉 Claim Your Prize 🎉</h3>
+      <input name="name" placeholder="Name" required />
+      <input name="email" type="email" placeholder="Email" required />
+      <input name="phone" placeholder="Phone" required />
+      <select name="location" required>
+        <option value="">Select Location</option>
+        <option value="Kingston">Kingston</option>
+        <option value="Montego Bay">Montego Bay</option>
+        <option value="Ocho Rios">Ocho Rios</option>
+      </select>
+      <div id="formError" style="color:#b00; font-size:14px; display:none;"></div>
+      <button type="submit" style="padding:10px; background:#28a745; color:#fff; border:none; border-radius:5px;">Submit</button>
+    `;
+  
+    document.body.appendChild(form);
+  
+    const errorBox = form.querySelector('#formError');
+  
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData);
+  
+      if (!data.name || !data.email || !data.phone || !data.location) {
+        errorBox.textContent = 'Please fill out all fields.';
+        errorBox.style.display = 'block';
+        return;
+      }
+  
+      if (!/^\S+@\S+\.\S+$/.test(data.email)) {
+        errorBox.textContent = 'Please enter a valid email address.';
+        errorBox.style.display = 'block';
+        return;
+      }
+  
+      if (!/^\d{7,15}$/.test(data.phone.replace(/\D/g, ''))) {
+        errorBox.textContent = 'Please enter a valid phone number.';
+        errorBox.style.display = 'block';
+        return;
+      }
+  
+      errorBox.style.display = 'none';
+  
+      const db = window.Firebase.db;
+      const ref = window.Firebase.collection(db, 'players');
+      const docRef = await window.Firebase.addDoc(ref, {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        location: data.location,
+        prizes: [this.popup.rewardType],
+        timesPlayed: 1,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+  
+      this.user = {
+        id: docRef.id,
+        ...data,
+        prizes: [this.popup.rewardType],
+        timesPlayed: 1
+      };
+  
+      localStorage.setItem('playerId', docRef.id);
+      localStorage.setItem('lastPlayedDate', new Date().toISOString().split('T')[0]);
+  
+      form.remove();
+      this.revealPrize(this.popup.rewardType);
+    });
+  }
+
+  createClaimForm() {
+    const existingForm = document.getElementById('userForm');
+    if (existingForm) return;
+  
+    const playerId = localStorage.getItem('playerId');
+    const db = window.Firebase.db;
+  
+    if (playerId) {
+      const docRef = window.Firebase.doc(db, 'players', playerId);
+  
+      window.Firebase.getDoc(docRef).then(async (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          console.log("DATA: ", data);
+          // Ask user to confirm
+          const confirmBox = document.createElement('div');
+          confirmBox.style.position = 'absolute';
+          confirmBox.style.top = '100px';
+          confirmBox.style.left = '50%';
+          confirmBox.style.transform = 'translateX(-50%)';
+          confirmBox.style.background = '#fff';
+          confirmBox.style.padding = '20px';
+          confirmBox.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+          confirmBox.style.borderRadius = '10px';
+          confirmBox.style.zIndex = '1000';
+          confirmBox.style.width = '300px';
+          confirmBox.style.fontFamily = 'sans-serif';
+          confirmBox.style.textAlign = 'center';
+  
+          confirmBox.innerHTML = `
+            <p>Are you <strong>${data.name}</strong>?</p>
+            <button id="yesBtn" style="margin-right:10px;">Yes</button>
+            <button id="noBtn">No</button>
+          `;
+          document.body.appendChild(confirmBox);
+  
+          confirmBox.querySelector('#yesBtn').onclick = async () => {
+            const updatedPrizes = [...(data.prizes || []), this.popup.rewardType];
+            await window.Firebase.updateDoc(docRef, {
+              timesPlayed: (data.timesPlayed || 0) + 1,
+              updatedAt: new Date(),
+              prizes: updatedPrizes
+            });
+  
+            this.user = {
+              id: playerId,
+              ...data,
+              timesPlayed: (data.timesPlayed || 0) + 1,
+              prizes: updatedPrizes
+            };
+  
+            localStorage.setItem('lastPlayedDate', new Date().toISOString().split('T')[0]);
+  
+            confirmBox.remove();
+            this.revealPrize(this.popup.rewardType);
+          };
+  
+          confirmBox.querySelector('#noBtn').onclick = () => {
+            confirmBox.remove();
+            this.buildClaimForm(); // fallback to full form
+          };
+        } else {
+          localStorage.removeItem('playerId');
+          this.buildClaimForm(); // fallback if no doc
+        }
+      });
+    } else {
+      this.buildClaimForm(); // new player
+    }
+  }
+
+
+
+  revealPrize(type) {
     const centerX = this.scale.width / 2;
     const centerY = this.scale.height / 2;
   
-    this.scene.pause();
-    this.popup.rewardType = type;
-  
-    // 🔄 Map reward to image texture
     const couponKey = {
       burger: 'couponBurger',
       fries: 'couponFries',
       drink: 'couponDrink'
     }[type];
   
-    if (!couponKey) {
-      console.warn('No coupon image found for reward type:', type);
-      return;
-    }
-  
-    // ✅ Show popup elements
-    this.popup.bg.setVisible(true);
-    //this.popup.box.setScale(0.3).setVisible(true);
-
     this.popup.coupon
       .setTexture(couponKey)
       .setAlpha(1)
       .setScale(0.4)
       .setVisible(true);
   
-    this.popup.button.setVisible(true);
-  
-    // 🧾 Animate in coupon and box
-    this.tweens.add({
-      targets: [this.popup.box, this.popup.coupon],
-      scale: 1,
-      alpha: 1,
-      ease: 'Back.Out',
-      duration: 500
-    });
-  
-    // 🎉 Animate banner
     const banner = this.add.text(centerX, centerY - 360, '🎉 YOU DID IT! 🎉', {
       fontSize: '28px',
       fontStyle: 'bold',
       color: '#d33'
-    }).setOrigin(0.5).setDepth(14).setAlpha(1);
+    }).setOrigin(0.5).setDepth(14);
   
     this.tweens.add({
       targets: banner,
-      alpha: 1,
       y: banner.y + 20,
       ease: 'Bounce',
       duration: 600
     });
-  
+  }
+
+  showReward(type) {
+    this.scene.pause();
+    this.popup.rewardType = type;
+    this.popup.bg.setVisible(true);
+    this.createClaimForm(); // Show form instead of reward
   }
 }

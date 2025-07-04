@@ -1,29 +1,53 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <meta charset="UTF-8" />
-  <title>Cloud Bites</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: #000;
-      overflow: hidden;
-      height: 100%;
-      width: 100%;
-    }
-    canvas {
-      display: block;
-      width: 100vw !important;
-      height: 100vh !important;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <title>Cloud Bites</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+    </style>
 </head>
+
 <body>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-  <script src="bootScene.js"></script>
-  <script src="gameScene.js"></script>
-  <script src="main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script src="bootScene.js"></script>
+    <script src="gameScene.js"></script>
+    <script src="main.js"></script>
+    <script type="module">
+        // Firebase SDK
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0d1oNHIP7pvRTcqTWd-_ycJzvLXBNj6w",
+            authDomain: "island-bites-tx26s.firebaseapp.com",
+            projectId: "island-bites-tx26s",
+            storageBucket: "island-bites-tx26s.firebasestorage.app",
+            messagingSenderId: "457685307311",
+            appId: "1:457685307311:web:68358f9829cf64eadaa95a"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.Firebase = { db, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc };
+    </script>
 </body>
+
 </html>
