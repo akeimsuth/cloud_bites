@@ -1,5 +1,3 @@
-import LeaderboardScene from './LeaderboardScene.js';
-
 const config = {
     type: Phaser.AUTO,
     scale: {
